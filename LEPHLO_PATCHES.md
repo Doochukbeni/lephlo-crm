@@ -25,8 +25,8 @@ Base release: **twenty/v2.42.6** (Twenty 2.42.0).
 |---|---|
 | `packages/twenty-front/index.html` | Title, description, OG tags, theme colour |
 | `packages/twenty-front/public/manifest.json` | App name, theme colour |
-| `packages/twenty-front/public/images/icons/**` (112 PNGs) | Regenerated from `lephlo/brand/logo.svg` by `lephlo/scripts/generate-icons.sh` |
-| `packages/twenty-front/src/index.tsx` | One import: `./lephlo/lephlo-theme.css` |
+| `packages/twenty-front/public/images/icons/**` (112 PNGs) | The Lephlo mark on the kit's light surface (`#F2F5F6`) with ¼ clearspace, generated from `lephlo/brand/lephlo-mark.svg` by `lephlo/scripts/generate-icons.sh` |
+| `packages/twenty-front/src/index.tsx` | One import: `./lephlo/lephlo-theme.css` (accent scale from the brand palette: aqua highlights, AA-safe deep teal `#467A80` for filled controls) |
 | `packages/twenty-front/src/utils/title-utils.ts` | Default page title |
 | `packages/twenty-front/src/pages/not-found/NotFound.tsx` | Page title |
 | `packages/twenty-front/src/pages/auth/SignInUp.tsx` | "Welcome to Lephlo" |
@@ -54,7 +54,7 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 | `packages/twenty-ui/package.json` | Key order normalized to what `yarn install` writes. The v2.42.6 tag ships it unsorted, which fails CI's "no uncommitted changes after build" check. Drop this patch if upstream fixes it. |
 
 ## Lephlo-only files
-- `lephlo/brand/`: logo source (placeholder monogram) and email logo PNG
+- `lephlo/brand/`: SVG masters from the Lephlo Brand Guidelines v1.0 (mark, horizontal lockup and wordmark, light and dark) plus the email logo PNG. Never recolour, rotate or add effects to the mark. The full kit lives in the `lephlo-os` repo under `brand/`.
 - `lephlo/scripts/generate-icons.sh`: regenerates every app icon from the logo
 - `lephlo/deploy/`: production Docker Compose (CRM + Documenso + Caddy), env template, backup script
 - `packages/twenty-front/src/lephlo/`: brand theme CSS, source-code URL constant

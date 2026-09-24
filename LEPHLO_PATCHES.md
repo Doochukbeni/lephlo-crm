@@ -48,6 +48,11 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 | `.github/workflows/*` (24 deleted) | twentyhq-only deploys, dispatchers, Crowdin i18n sync, Claude jobs, merge queue, release creation |
 | `.github/workflows/{ci-front,ci-e2e-main,ci-create-app-e2e-minimal}.yaml` | `ubuntu-latest-{4,8}-cores` → `ubuntu-latest` (paid large runners aren't available) |
 
+### Build hygiene
+| File | Change |
+|---|---|
+| `packages/twenty-ui/package.json` | Key order normalized to what `yarn install` writes. The v2.42.6 tag ships it unsorted, which fails CI's "no uncommitted changes after build" check. Drop this patch if upstream fixes it. |
+
 ## Lephlo-only files
 - `lephlo/brand/`: logo source (placeholder monogram) and email logo PNG
 - `lephlo/scripts/generate-icons.sh`: regenerates every app icon from the logo

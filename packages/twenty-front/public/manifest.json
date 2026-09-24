@@ -3,8 +3,8 @@
   "name": "Lephlo",
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#1F3A5F",
-  "background_color": "#ffffff",
+  "theme_color": "#111417",
+  "background_color": "#F2F5F6",
   "icons": [
     {
       "src": "images/icons/windows11/SmallTile.scale-100.png",

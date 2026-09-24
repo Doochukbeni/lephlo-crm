@@ -1,130 +1,126 @@
 /*
- * Lephlo brand theme.
+ * Lephlo brand theme (Lephlo Brand Guidelines v1.0).
  *
  * Overrides twenty-ui's generated accent scale (and the "blue" scale that
- * primary buttons read directly) with a scale derived from the brand navy.
- * Imported after twenty-ui/theme-*.css in src/index.tsx, so the same .light /
- * .dark selectors win by source order. Change --lephlo-brand-* to re-theme.
+ * primary buttons read directly). Imported after twenty-ui/theme-*.css in
+ * src/index.tsx, so the same .light / .dark selectors win by source order.
+ *
+ * Palette: Aqua #57e5e1 · Teal #589ca3 · Slate #4b5a63 · Deep Slate #36404a ·
+ * Silver #b4c7ce · Ink #111417. "Slate carries structure; aqua is the accent,
+ * never the field": aqua tints drive selection and highlights, while filled
+ * controls use --lephlo-solid, brand Teal deepened 25% toward Ink so white
+ * button text clears WCAG AA (4.8:1; raw Teal is 3.1:1, Aqua 1.5:1).
  */
 
+.light,
+.dark {
+  --lephlo-aqua: #57e5e1;
+  --lephlo-teal: #589ca3;
+  --lephlo-ink: #111417;
+  --lephlo-solid: #467a80;
+  --lephlo-solid-hover: #3f6c72;
+}
+
 .light {
-  --lephlo-brand-solid: #1f3a5f;
-  --lephlo-brand-surface: #ffffff;
+  --lephlo-surface: #ffffff;
 
   --t-accent-accent1: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 2%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 4%,
+    var(--lephlo-surface)
   );
   --t-accent-accent2: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 4%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 8%,
+    var(--lephlo-surface)
   );
   --t-accent-accent3: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 8%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 14%,
+    var(--lephlo-surface)
   );
   --t-accent-accent4: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 13%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 22%,
+    var(--lephlo-surface)
   );
   --t-accent-accent5: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 19%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 30%,
+    var(--lephlo-surface)
   );
   --t-accent-accent6: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 26%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 42%,
+    var(--lephlo-surface)
   );
   --t-accent-accent7: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 36%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-teal) 55%,
+    var(--lephlo-surface)
   );
   --t-accent-accent8: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 50%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-teal) 80%,
+    var(--lephlo-surface)
   );
-  --t-accent-accent9: var(--lephlo-brand-solid);
-  --t-accent-accent10: color-mix(
-    in oklch,
-    var(--lephlo-brand-solid) 85%,
-    #000000
-  );
-  --t-accent-accent11: var(--lephlo-brand-solid);
+  --t-accent-accent9: var(--lephlo-solid);
+  --t-accent-accent10: var(--lephlo-solid-hover);
+  --t-accent-accent11: var(--lephlo-solid);
   --t-accent-accent12: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 60%,
-    #000000
+    var(--lephlo-teal) 45%,
+    var(--lephlo-ink)
   );
 }
 
 .dark {
-  --lephlo-brand-solid: #3d649a;
-  --lephlo-brand-surface: #1b1b1b;
+  --lephlo-surface: #1b1b1b;
 
   --t-accent-accent1: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 4%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 4%,
+    var(--lephlo-surface)
   );
   --t-accent-accent2: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 8%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 7%,
+    var(--lephlo-surface)
   );
   --t-accent-accent3: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 14%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 11%,
+    var(--lephlo-surface)
   );
   --t-accent-accent4: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 20%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 16%,
+    var(--lephlo-surface)
   );
   --t-accent-accent5: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 27%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 22%,
+    var(--lephlo-surface)
   );
   --t-accent-accent6: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 35%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-aqua) 30%,
+    var(--lephlo-surface)
   );
   --t-accent-accent7: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 46%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-teal) 55%,
+    var(--lephlo-surface)
   );
   --t-accent-accent8: color-mix(
     in oklch,
-    var(--lephlo-brand-solid) 62%,
-    var(--lephlo-brand-surface)
+    var(--lephlo-teal) 80%,
+    var(--lephlo-surface)
   );
-  --t-accent-accent9: var(--lephlo-brand-solid);
-  --t-accent-accent10: color-mix(
-    in oklch,
-    var(--lephlo-brand-solid) 85%,
-    #ffffff
-  );
-  --t-accent-accent11: color-mix(
-    in oklch,
-    var(--lephlo-brand-solid) 45%,
-    #ffffff
-  );
-  --t-accent-accent12: color-mix(
-    in oklch,
-    var(--lephlo-brand-solid) 15%,
-    #ffffff
-  );
+  --t-accent-accent9: var(--lephlo-solid);
+  --t-accent-accent10: var(--lephlo-solid-hover);
+  --t-accent-accent11: var(--lephlo-aqua);
+  --t-accent-accent12: color-mix(in oklch, var(--lephlo-aqua) 35%, #ffffff);
 }
 
 .light,

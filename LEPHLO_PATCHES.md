@@ -27,7 +27,7 @@ Base release: **twenty/v2.42.6** (Twenty 2.42.0).
 | `packages/twenty-front/public/manifest.json` | App name, theme colour |
 | `packages/twenty-front/public/images/icons/**` (112 PNGs) | Regenerated from `lephlo/brand/logo.svg` by `lephlo/scripts/generate-icons.sh` |
 | `packages/twenty-front/src/index.tsx` | One import: `./lephlo/lephlo-theme.css` |
-| `packages/twenty-front/src/utils/title-utils.ts` | Default page title |
+| `packages/twenty-front/src/utils/title-utils.ts` (+ `__tests__/title-utils.test.ts`) | Default page title |
 | `packages/twenty-front/src/pages/not-found/NotFound.tsx` | Page title |
 | `packages/twenty-front/src/pages/auth/SignInUp.tsx` | "Welcome to Lephlo" |
 | `packages/twenty-front/src/modules/auth/sign-in-up/components/FooterNote.tsx` | Twenty's legal links replaced by "Powered by Twenty · Source code" (AGPL §13) |
@@ -52,6 +52,7 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 | File | Change |
 |---|---|
 | `packages/twenty-ui/package.json` | Key order normalized to what `yarn install` writes. The v2.42.6 tag ships it unsorted, which fails CI's "no uncommitted changes after build" check. Drop this patch if upstream fixes it. |
+| `packages/twenty-client-sdk/src/metadata/generated/types.ts` | One regenerated type index (`completeAppTarballUpload` 76 → 78). The tag's generated SDK client is stale, which fails CI's codegen check. Drop it when upstream regenerates. |
 
 ## Lephlo-only files
 - `lephlo/brand/`: logo source (placeholder monogram) and email logo PNG

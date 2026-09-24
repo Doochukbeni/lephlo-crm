@@ -1,0 +1,70 @@
+name: Lephlo — build image
+
+# Builds the production image (server + frontend) from this fork and pushes it
+# to GHCR. Labels come from docker/metadata-action so the upstream Dockerfile
+# stays unpatched.
+
+on:
+  push:
+    branches: [lephlo]
+    tags: ['lephlo/v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: lephlo-build-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/lephlo-crm
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Twenty version
+        id: version
+        run: |
+          version=$(grep -oE "'[0-9]+\.[0-9]+\.[0-9]+'" packages/twenty-server/src/engine/core-modules/upgrade/constants/twenty-current-version.constant.ts | tr -d "'")
+          echo "twenty=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=match,pattern=lephlo/v(.*),group=1
+          labels: |
+            org.opencontainers.image.title=Lephlo CRM
+            org.opencontainers.image.description=Lephlo build of Twenty ${{ steps.version.outputs.twenty }} (server + frontend)
+            org.opencontainers.image.licenses=AGPL-3.0
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/twenty-docker/twenty/Dockerfile
+          target: twenty
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.twenty }}-lephlo
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

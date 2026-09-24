@@ -65,7 +65,7 @@ export const SignInUpStandardContent = ({
         SignInUpStep.WorkspaceSelection,
         SignInUpStep.WorkspaceCreation,
       ].includes(signInUpStep) && (
-        <FooterNote secondaryAgreement="dataProcessingAgreement" />
+        <FooterNote />
       )}
     </StyledAuthContent>
   );

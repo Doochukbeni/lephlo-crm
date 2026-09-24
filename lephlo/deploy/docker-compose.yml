@@ -1,0 +1,181 @@
+# Lephlo production stack: Lephlo CRM (Twenty fork) + Documenso behind Caddy.
+# Usage: cp .env.example .env && edit, then `docker compose up -d`.
+# Based on packages/twenty-docker/docker-compose.yml (upstream).
+
+name: lephlo
+
+x-twenty-env: &twenty-env
+  PG_DATABASE_URL: postgres://${PG_DATABASE_USER}:${PG_DATABASE_PASSWORD}@db:5432/${PG_DATABASE_NAME}
+  REDIS_URL: redis://redis:6379
+  SERVER_URL: https://${CRM_DOMAIN}
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+  FALLBACK_ENCRYPTION_KEY: ${FALLBACK_ENCRYPTION_KEY:-}
+
+  STORAGE_TYPE: ${STORAGE_TYPE:-local}
+  STORAGE_S3_REGION: ${STORAGE_S3_REGION:-}
+  STORAGE_S3_NAME: ${STORAGE_S3_NAME:-}
+  STORAGE_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT:-}
+  STORAGE_S3_ACCESS_KEY_ID: ${STORAGE_S3_ACCESS_KEY_ID:-}
+  STORAGE_S3_SECRET_ACCESS_KEY: ${STORAGE_S3_SECRET_ACCESS_KEY:-}
+
+  # Without this the production image refuses to run any app code.
+  LOGIC_FUNCTION_TYPE: LOCAL
+
+  IS_MULTIWORKSPACE_ENABLED: "false"
+  IS_WORKSPACE_CREATION_LIMITED_TO_SERVER_ADMINS: "true"
+  TELEMETRY_ENABLED: "false"
+  ALLOW_REQUESTS_TO_TWENTY_ICONS: "false"
+  IS_IMAP_SMTP_CALDAV_ENABLED: "false"
+
+  EMAIL_DRIVER: SMTP
+  EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS}
+  EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Lephlo}
+  EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST}
+  EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-465}
+  EMAIL_SMTP_USER: ${EMAIL_SMTP_USER}
+  EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD}
+
+  AUTH_GOOGLE_ENABLED: ${AUTH_GOOGLE_ENABLED:-false}
+  AUTH_GOOGLE_CLIENT_ID: ${AUTH_GOOGLE_CLIENT_ID:-}
+  AUTH_GOOGLE_CLIENT_SECRET: ${AUTH_GOOGLE_CLIENT_SECRET:-}
+  AUTH_GOOGLE_CALLBACK_URL: https://${CRM_DOMAIN}/auth/google/redirect
+  AUTH_GOOGLE_APIS_CALLBACK_URL: https://${CRM_DOMAIN}/auth/google-apis/get-access-token
+  MESSAGING_PROVIDER_GMAIL_ENABLED: ${MESSAGING_PROVIDER_GMAIL_ENABLED:-false}
+  CALENDAR_PROVIDER_GOOGLE_ENABLED: ${CALENDAR_PROVIDER_GOOGLE_ENABLED:-false}
+
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+  EXCEPTION_HANDLER_DRIVER: ${EXCEPTION_HANDLER_DRIVER:-CONSOLE}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_FRONT_DSN: ${SENTRY_FRONT_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+
+services:
+  server:
+    image: ghcr.io/doochukbeni/lephlo-crm:${LEPHLO_TAG:?set LEPHLO_TAG to a pinned image tag}
+    volumes:
+      - server-local-data:/app/packages/twenty-server/.local-storage
+    environment:
+      <<: *twenty-env
+      NODE_PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:3000/healthz
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    restart: always
+
+  worker:
+    image: ghcr.io/doochukbeni/lephlo-crm:${LEPHLO_TAG}
+    volumes:
+      - server-local-data:/app/packages/twenty-server/.local-storage
+    command: ["yarn", "worker:prod"]
+    environment:
+      <<: *twenty-env
+      DISABLE_DB_MIGRATIONS: "true"
+      DISABLE_CRON_JOBS_REGISTRATION: "true"
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: always
+
+  db:
+    image: postgres:16
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${PG_DATABASE_NAME}
+      POSTGRES_USER: ${PG_DATABASE_USER}
+      POSTGRES_PASSWORD: ${PG_DATABASE_PASSWORD}
+    healthcheck:
+      test: pg_isready -U ${PG_DATABASE_USER} -h localhost -d postgres
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  redis:
+    image: redis:7
+    command: ["--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  # Env names follow Documenso's self-hosting docs; re-check them against the
+  # release pinned in DOCUMENSO_TAG before upgrading.
+  documenso:
+    image: documenso/documenso:${DOCUMENSO_TAG:?set DOCUMENSO_TAG to a pinned release}
+    environment:
+      PORT: 3000
+      NEXTAUTH_SECRET: ${DOCUMENSO_NEXTAUTH_SECRET}
+      NEXT_PRIVATE_ENCRYPTION_KEY: ${DOCUMENSO_ENCRYPTION_KEY}
+      NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY: ${DOCUMENSO_ENCRYPTION_SECONDARY_KEY}
+      NEXT_PUBLIC_WEBAPP_URL: https://${SIGN_DOMAIN}
+      NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://documenso:3000
+      NEXT_PRIVATE_DATABASE_URL: postgres://${DOCUMENSO_DB_USER}:${DOCUMENSO_DB_PASSWORD}@documenso-db:5432/${DOCUMENSO_DB_NAME}
+      NEXT_PRIVATE_DIRECT_DATABASE_URL: postgres://${DOCUMENSO_DB_USER}:${DOCUMENSO_DB_PASSWORD}@documenso-db:5432/${DOCUMENSO_DB_NAME}
+      NEXT_PUBLIC_DISABLE_SIGNUP: "true"
+      NEXT_PRIVATE_SMTP_TRANSPORT: smtp-auth
+      NEXT_PRIVATE_SMTP_HOST: ${EMAIL_SMTP_HOST}
+      NEXT_PRIVATE_SMTP_PORT: ${EMAIL_SMTP_PORT:-465}
+      NEXT_PRIVATE_SMTP_USERNAME: ${EMAIL_SMTP_USER}
+      NEXT_PRIVATE_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD}
+      NEXT_PRIVATE_SMTP_SECURE: "true"
+      NEXT_PRIVATE_SMTP_FROM_NAME: ${EMAIL_FROM_NAME:-Lephlo}
+      NEXT_PRIVATE_SMTP_FROM_ADDRESS: ${DOCUMENSO_FROM_ADDRESS}
+      NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH: /opt/documenso/cert.p12
+      NEXT_PRIVATE_SIGNING_PASSPHRASE: ${DOCUMENSO_SIGNING_PASSPHRASE}
+    volumes:
+      - ./secrets/documenso-cert.p12:/opt/documenso/cert.p12:ro
+    depends_on:
+      documenso-db:
+        condition: service_healthy
+    restart: always
+
+  documenso-db:
+    image: postgres:16
+    volumes:
+      - documenso-db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DOCUMENSO_DB_NAME}
+      POSTGRES_USER: ${DOCUMENSO_DB_USER}
+      POSTGRES_PASSWORD: ${DOCUMENSO_DB_PASSWORD}
+    healthcheck:
+      test: pg_isready -U ${DOCUMENSO_DB_USER} -h localhost -d postgres
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  caddy:
+    build: ./caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CRM_DOMAIN: ${CRM_DOMAIN}
+      SIGN_DOMAIN: ${SIGN_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+      - documenso
+    restart: always
+
+volumes:
+  db-data:
+  server-local-data:
+  documenso-db-data:
+  caddy-data:
+  caddy-config:

@@ -190,7 +190,8 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
           label: t`Community`,
           path: SettingsPath.Community,
           Icon: IconUsers,
-          isHidden: !permissionMap[PermissionFlagType.WORKSPACE],
+          // Lephlo: upstream community links don't apply to this instance
+          isHidden: true,
         },
         {
           label: t`Support`,
@@ -206,6 +207,8 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
               '_blank',
             ),
           Icon: IconHelpCircle,
+          // Lephlo: internal docs replace upstream's user guide
+          isHidden: true,
         },
         {
           label: t`Logout`,

@@ -1,8 +1,8 @@
 import { styled } from '@linaria/react';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Trans } from '@lingui/react/macro';
 
 import { useWorkspaceBypass } from '@/auth/sign-in-up/hooks/useWorkspaceBypass';
-import { getTwentyWebsiteUrl } from '@/auth/utils/getTwentyWebsiteUrl';
+import { LEPHLO_SOURCE_CODE_URL } from '~/lephlo/LephloSourceCodeUrl';
 import { useIsCurrentLocationOnAWorkspace } from '@/domain-manager/hooks/useIsCurrentLocationOnAWorkspace';
 import { ONBOARDING_CONTENT_BLOCK_WIDTH } from '@/onboarding/constants/OnboardingContentBlockWidth';
 import { themeCssVariables } from 'twenty-ui/theme-constants';
@@ -57,49 +57,24 @@ const StyledSeparator = styled.span`
   color: ${themeCssVariables.font.color.tertiary};
 `;
 
-type FooterNoteProps = {
-  secondaryAgreement?: 'privacyPolicy' | 'dataProcessingAgreement';
-};
-
-export const FooterNote = ({
-  secondaryAgreement = 'privacyPolicy',
-}: FooterNoteProps) => {
+export const FooterNote = () => {
   const { isOnAWorkspace } = useIsCurrentLocationOnAWorkspace();
-  const { i18n } = useLingui();
 
   const { shouldOfferBypass, shouldUseBypass, enableBypass } =
     useWorkspaceBypass();
 
+  // Lephlo: Twenty's terms and privacy links don't govern this self-hosted
+  // instance; show attribution and the source link instead.
+  const sourceCodeLink = (
+    <a href={LEPHLO_SOURCE_CODE_URL} target="_blank" rel="noopener noreferrer">
+      <Trans>Source code</Trans>
+    </a>
+  );
+
   if (!isOnAWorkspace) {
     return (
       <StyledCopyContainer>
-        <Trans>By using Twenty, you agree to the</Trans>{' '}
-        <a
-          href={getTwentyWebsiteUrl(i18n.locale, 'terms')}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Trans>Terms of Service</Trans>
-        </a>{' '}
-        <Trans>and</Trans>{' '}
-        {secondaryAgreement === 'dataProcessingAgreement' ? (
-          <a
-            href="https://twenty.com/legal/dpa"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Trans>Data Processing Agreement</Trans>
-          </a>
-        ) : (
-          <a
-            href={getTwentyWebsiteUrl(i18n.locale, 'privacy-policy')}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Trans>Privacy Policy</Trans>
-          </a>
-        )}
-        .
+        <Trans>Powered by Twenty</Trans> · {sourceCodeLink}
       </StyledCopyContainer>
     );
   }
@@ -114,21 +89,11 @@ export const FooterNote = ({
           <StyledSeparator>•</StyledSeparator>
         </>
       )}
-      <a
-        href={getTwentyWebsiteUrl(i18n.locale, 'privacy-policy')}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Trans>Privacy Policy</Trans>
-      </a>
+      <span>
+        <Trans>Powered by Twenty</Trans>
+      </span>
       <StyledSeparator>•</StyledSeparator>
-      <a
-        href={getTwentyWebsiteUrl(i18n.locale, 'terms')}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <Trans>Terms of Service</Trans>
-      </a>
+      {sourceCodeLink}
     </StyledLinksContainer>
   );
 };

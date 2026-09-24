@@ -64,9 +64,7 @@ export const SignInUpStandardContent = ({
         SignInUpStep.TwoFactorAuthenticationVerification,
         SignInUpStep.WorkspaceSelection,
         SignInUpStep.WorkspaceCreation,
-      ].includes(signInUpStep) && (
-        <FooterNote secondaryAgreement="dataProcessingAgreement" />
-      )}
+      ].includes(signInUpStep) && <FooterNote />}
     </StyledAuthContent>
   );
 };

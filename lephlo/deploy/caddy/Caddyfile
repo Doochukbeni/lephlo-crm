@@ -1,0 +1,28 @@
+{
+	email {$ACME_EMAIL}
+	order rate_limit before reverse_proxy
+}
+
+{$CRM_DOMAIN} {
+	encode zstd gzip
+
+	# App public routes (client portal, lead capture, Stripe/Documenso webhooks)
+	# are unauthenticated, so they get a per-IP budget.
+	rate_limit {
+		zone public_app_routes {
+			match {
+				path /s/*
+			}
+			key {remote_host}
+			events 60
+			window 1m
+		}
+	}
+
+	reverse_proxy server:3000
+}
+
+{$SIGN_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy documenso:3000
+}

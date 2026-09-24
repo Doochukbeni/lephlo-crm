@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Placeholder monogram. Replace with the final Lephlo logo, then run lephlo/scripts/generate-icons.sh -->
+  <rect width="512" height="512" rx="112" fill="#1F3A5F"/>
+  <path d="M176 128h56v200h120v56H176z" fill="#FFFFFF"/>
+  <circle cx="352" cy="176" r="36" fill="#E4A33B"/>
+</svg>

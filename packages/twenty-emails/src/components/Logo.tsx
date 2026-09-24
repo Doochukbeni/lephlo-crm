@@ -7,8 +7,8 @@ const logoStyle = {
 export const Logo = () => {
   return (
     <Img
-      src="https://app.twenty.com/images/icons/windows11/Square150x150Logo.scale-100.png"
-      alt="Twenty logo"
+      src="https://raw.githubusercontent.com/Doochukbeni/lephlo-crm/lephlo/lephlo/brand/logo-150.png"
+      alt="Lephlo logo"
       width="40"
       height="40"
       style={logoStyle}

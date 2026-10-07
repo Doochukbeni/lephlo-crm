@@ -70,3 +70,6 @@ screenshots/
 /.diag*.mjs
 /.compare*.mjs
 /.narrow*.mjs
+
+# lephlo/deploy/build-image.sh reports and SBOMs
+lephlo/deploy/out/

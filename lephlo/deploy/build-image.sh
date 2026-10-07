@@ -58,6 +58,34 @@ done
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 fail() { printf '\033[31m✖ %s\033[0m\n' "$1" >&2; exit 1; }
 
+# Pushing to GHCR needs the write:packages scope on the gh token. Ask for it
+# once (browser sign-in) instead of failing after a long build.
+ensure_ghcr_scope() {
+  command -v gh > /dev/null || fail "The GitHub CLI (gh) is required to push."
+  if gh api -i user 2> /dev/null | grep -i '^x-oauth-scopes:' | grep -q 'write:packages'; then
+    echo "GitHub token can push packages."
+    return
+  fi
+  [[ -t 0 ]] || fail "The gh token can't push packages. Run: gh auth refresh -h github.com -s write:packages"
+  echo "The gh token can't push packages yet. Adding the write:packages scope (one-time browser sign-in)."
+  gh auth refresh -h github.com -s write:packages
+  gh api -i user 2> /dev/null | grep -i '^x-oauth-scopes:' | grep -q 'write:packages' \
+    || fail "Still no write:packages scope on the gh token."
+}
+
+# GitHub has no API to change package visibility, so only point at the page.
+remind_if_private() {
+  local visibility
+  visibility="$(gh api /user/packages/container/lephlo-crm -q .visibility 2> /dev/null || true)"
+  if [[ "$visibility" == "private" ]]; then
+    echo
+    echo "The GHCR package is private, so the server would need a login to pull it."
+    echo "Make it public (the fork is public under the AGPL anyway):"
+    echo "  https://github.com/users/Doochukbeni/packages/container/lephlo-crm/settings"
+    echo "  → Danger Zone → Change visibility → Public"
+  fi
+}
+
 scan() {
   local ref="$1" name="$2"
   mkdir -p "$OUT"
@@ -120,6 +148,7 @@ if $PUSH; then
   # sha tag and source label lead somewhere.
   git branch -r --contains "$SHA" | grep -q . \
     || fail "Commit $SHORT isn't on GitHub yet. Push it first."
+  ensure_ghcr_scope
 fi
 
 echo "Commit:  $SHORT ($(git rev-parse --abbrev-ref HEAD))"
@@ -160,15 +189,15 @@ scan "${TAGS[0]}" "sha-$SHORT"
 
 if $PUSH; then
   step "Push to GHCR"
-  # Needs a token with write:packages: gh auth refresh -s write:packages
   gh auth token | docker login ghcr.io -u "$(gh api user -q .login)" --password-stdin > /dev/null \
-    || fail "GHCR login failed. Run: gh auth refresh -s write:packages"
+    || fail "GHCR login failed. Run: gh auth refresh -h github.com -s write:packages"
   for tag in "${TAGS[@]}"; do docker push --quiet "$tag"; done
   digest="$(docker inspect --format '{{index .RepoDigests 0}}' "${TAGS[0]}")"
   echo
   echo "Pushed. Pin production to one of:"
   for tag in "${TAGS[@]}"; do echo "  LEPHLO_TAG=${tag#"$IMAGE:"}"; done
   echo "Digest: $digest"
+  remind_if_private
 else
   echo
   echo "Built and scanned locally. Add --push to publish."

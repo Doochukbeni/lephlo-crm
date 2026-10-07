@@ -6,7 +6,8 @@ This repository is a fork of [twentyhq/twenty](https://github.com/twentyhq/twent
 
 - No features and no schema changes in this repo. They belong in the app. Fork-only upgrade commands inside upstream's version folders get silently skipped.
 - Every changed upstream file is listed below. If you touch a new upstream file, add it here in the same PR.
-- New Lephlo-only files go in `lephlo/`, `packages/twenty-front/src/lephlo/` or `.github/workflows/lephlo-*` so merges rarely conflict.
+- New Lephlo-only files go in `lephlo/` or `packages/twenty-front/src/lephlo/` so merges rarely conflict.
+- GitHub Actions is **disabled** on this repository (billing). The upstream workflows below stay in the tree only to keep merges clean; they never run. Checks and image builds run locally.
 
 ## Branches
 
@@ -59,7 +60,7 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 - `lephlo/scripts/generate-icons.sh`: regenerates every app icon from the logo
 - `lephlo/deploy/`: production Docker Compose (CRM + Documenso + Caddy), env template, backup script
 - `packages/twenty-front/src/lephlo/`: brand theme CSS, source-code URL constant
-- `.github/workflows/lephlo-build-image.yaml`: builds and pushes `ghcr.io/doochukbeni/lephlo-crm`
+- `lephlo/deploy/build-image.sh`: builds, scans (Trivy + SBOM) and pushes `ghcr.io/doochukbeni/lephlo-crm` from a workstation
 
 ## Syncing a new upstream release
 

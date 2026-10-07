@@ -5,7 +5,7 @@ One VPS (4 vCPU / 8 GB), Docker Compose. Services: Lephlo CRM server + worker, P
 ## First install
 
 1. DNS: point `CRM_DOMAIN` and `SIGN_DOMAIN` A records at the VPS.
-2. `cp .env.example .env`, then fill it in. Pin `LEPHLO_TAG` to an image built by the *Lephlo — build image* workflow, and pin `DOCUMENSO_TAG` to a Documenso release.
+2. `cp .env.example .env`, then fill it in. Pin `LEPHLO_TAG` to an image pushed by `build-image.sh` (see below), and pin `DOCUMENSO_TAG` to a Documenso release.
 3. Documenso signing certificate:
    ```bash
    mkdir -p secrets
@@ -21,9 +21,37 @@ One VPS (4 vCPU / 8 GB), Docker Compose. Services: Lephlo CRM server + worker, P
 The server runs `upgrade` on start, so upgrade one Twenty minor version at a time:
 
 1. Merge the upstream release into `lephlo` (see `../../LEPHLO_PATCHES.md`).
-2. Wait for CI to build the image.
+2. Build and push the image with `build-image.sh` (below).
 3. Deploy to staging with a copy of production data.
 4. Bump `LEPHLO_TAG` in production, then run `docker compose pull && docker compose up -d`.
+
+## Building the image
+
+GitHub Actions is off on this account, so the image is built from a workstation:
+
+```bash
+lephlo/deploy/build-image.sh --dry-run          # checks only: clean tree, tags
+lephlo/deploy/build-image.sh                    # build + scan, keep it local
+lephlo/deploy/build-image.sh --push             # build + scan + push sha-<commit>
+git tag lephlo/v1.0.0 && git push origin lephlo/v1.0.0
+lephlo/deploy/build-image.sh --release 1.0.0 --push   # also push lephlo-v1.0.0
+```
+
+- The build runs from a clean, committed tree. A pushed commit must already be on GitHub, so every image traces back to its source.
+- **Trivy** (pinned by digest) writes a HIGH/CRITICAL report and an SPDX SBOM to `lephlo/deploy/out/`, and stops before pushing if a CRITICAL vulnerability has a fix. `--scan-only <image>` rescans an existing image, for example the one in production after a new CVE.
+- Pushing needs a GitHub token with `write:packages`: run `gh auth refresh -s write:packages` once.
+- Production pins `LEPHLO_TAG` to a `sha-…` or `lephlo-v…` tag. Nothing like `latest` is pushed.
+
+**Build machine.** The image is `linux/amd64`, and the front-end build needs about 8 GB of memory. On an Apple Silicon Mac it runs under emulation and can take more than an hour, or fail for lack of memory. A temporary amd64 box is faster:
+
+```bash
+hcloud server create --name lephlo-builder --type cpx41 --image docker-ce --location fsn1 --ssh-key <key>
+docker buildx create --name lephlo-amd64 --driver docker-container ssh://root@<builder-ip>
+lephlo/deploy/build-image.sh --builder lephlo-amd64 --push
+docker buildx rm lephlo-amd64 && hcloud server delete lephlo-builder   # about EUR 0.05 per build
+```
+
+Don't build on the production server: the build competes with the running CRM for memory.
 
 ## Notes
 

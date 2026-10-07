@@ -10,6 +10,8 @@ type TitleProps = React.PropsWithChildren & {
 
 const StyledTitle = styled.div<Pick<TitleProps, 'noMarginTop'>>`
   color: ${themeCssVariables.font.color.primary};
+  /* Lephlo: Poppins headline (src/lephlo/lephlo-theme.css). */
+  font-family: var(--lephlo-font-heading, inherit);
   font-size: ${themeCssVariables.font.size.xl};
   font-weight: ${themeCssVariables.font.weight.semiBold};
   margin-bottom: ${themeCssVariables.spacing[4]};

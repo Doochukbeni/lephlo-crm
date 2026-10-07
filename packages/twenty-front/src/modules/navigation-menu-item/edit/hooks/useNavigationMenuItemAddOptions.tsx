@@ -173,8 +173,8 @@ export const useNavigationMenuItemAddOptions = ({
           onClick: () => {
             addItem({
               type: NavigationMenuItemType.LINK,
-              name: 'Twenty',
-              link: 'https://twenty.com',
+              name: 'Lephlo',
+              link: 'https://lephlo.com',
               color: DEFAULT_NAVIGATION_MENU_ITEM_COLOR_LINK,
             });
           },

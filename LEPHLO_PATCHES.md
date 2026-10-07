@@ -31,6 +31,14 @@ Base release: **twenty/v2.42.6** (Twenty 2.42.0).
 | `packages/twenty-front/src/utils/title-utils.ts` (+ `__tests__/title-utils.test.ts`) | Default page title |
 | `packages/twenty-front/src/pages/not-found/NotFound.tsx` | Page title |
 | `packages/twenty-front/src/pages/auth/SignInUp.tsx` | "Welcome to Lephlo" |
+| `packages/twenty-front/src/modules/auth/components/Logo.tsx` | Default auth logo → Lephlo lockup (`src/lephlo/LephloLockup.tsx`); the workspace badge is dropped (single workspace) |
+| `packages/twenty-front/src/modules/auth/components/Title.tsx` | Auth and onboarding titles use `--lephlo-font-heading` (Poppins Bold) |
+| `packages/twenty-front/public/images/integrations/twenty-logo.svg` | Content replaced by the Lephlo mark on a square tile with ¼ clearspace (the file name stays so its four users need no patch: loading pulse, onboarding header, app-connection header, import badge) |
+| `packages/twenty-front/src/modules/activities/timeline-activities/utils/getTimelineActivityAuthorFullName.ts` (+ test) | System actor in timelines: "Twenty" → "Lephlo" |
+| `packages/twenty-front/src/modules/navigation-menu-item/edit/hooks/useNavigationMenuItemAddOptions.tsx` | New sidebar link defaults to Lephlo / lephlo.com |
+| `packages/twenty-front/src/modules/spreadsheet-import/steps/components/MatchColumnsStep/components/ColumnGrid.tsx` | "Lephlo fields" |
+| `packages/twenty-front/src/pages/settings/ai/components/{SettingsAiModelsTab,SettingsAiModelTiersPreview}.tsx` | AI settings copy says Lephlo |
+| `packages/twenty-front/src/pages/settings/communications/SettingsWorkspaceCommunicationGroupChannelDetail.tsx` | "Lephlo checks them automatically" |
 | `packages/twenty-front/src/modules/auth/sign-in-up/components/FooterNote.tsx` | Twenty's legal links replaced by "Powered by Twenty · Source code" (AGPL §13) |
 | `packages/twenty-front/src/modules/auth/sign-in-up/components/SignInUpStandardContent.tsx` | Drops the removed `secondaryAgreement` prop |
 | `packages/twenty-front/src/modules/ui/navigation/navigation-drawer/constants/DefaultWorkspaceLogo.ts` | Self-hosted default logo |
@@ -40,6 +48,9 @@ Base release: **twenty/v2.42.6** (Twenty 2.42.0).
 | `packages/twenty-emails/src/emails/{send-invite-link,password-update-notify,send-email-verification-link}.email.tsx` | Product name in copy |
 | `packages/twenty-server/src/engine/core-modules/email-verification/services/email-verification.service.ts` | Email subject |
 | `packages/twenty-server/src/engine/core-modules/workspace-invitation/services/workspace-invitation.service.ts` | Invite subject and sender name |
+| `packages/twenty-server/src/engine/core-modules/approved-access-domain/services/approved-access-domain.service.ts` | Sender name "(via Lephlo)" |
+
+**Kept on purpose (not branding):** "Powered by Twenty · Source code" (AGPL §13); MCP and CLI names and setup copy (they name the real Twenty MCP server and CLI); the standard-application description; billing, enterprise, DPA and community copy (not shown on a self-hosted install).
 
 Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall back to the English source text in other locales.
 
@@ -59,7 +70,9 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 - `lephlo/brand/`: SVG masters from the Lephlo Brand Guidelines v1.0 (mark, horizontal lockup and wordmark, light and dark) plus the email logo PNG. Never recolour, rotate or add effects to the mark. The full kit lives in the `lephlo-os` repo under `brand/`.
 - `lephlo/scripts/generate-icons.sh`: regenerates every app icon from the logo
 - `lephlo/deploy/`: production Docker Compose (CRM + Documenso + Caddy), env template, backup script
-- `packages/twenty-front/src/lephlo/`: brand theme CSS, source-code URL constant
+- `packages/twenty-front/src/lephlo/`: brand theme CSS (accent scale, lockup dark-mode switch, Poppins `@font-face`), `LephloLockup.tsx`, source-code URL constant
+- `packages/twenty-front/public/images/lephlo/`: lockup SVGs (light and reversed)
+- `packages/twenty-front/public/fonts/lephlo/`: Poppins Bold + its OFL licence
 - `lephlo/deploy/build-image.sh`: builds, scans (Trivy + SBOM) and pushes `ghcr.io/doochukbeni/lephlo-crm` from a workstation
 
 ## Syncing a new upstream release

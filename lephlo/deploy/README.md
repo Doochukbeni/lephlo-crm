@@ -39,7 +39,7 @@ lephlo/deploy/build-image.sh --release 1.0.0 --push   # also push lephlo-v1.0.0
 
 - The build runs from a clean, committed tree. A pushed commit must already be on GitHub, so every image traces back to its source.
 - **Trivy** (pinned by digest) writes a HIGH/CRITICAL report and an SPDX SBOM to `lephlo/deploy/out/`, and stops before pushing if a CRITICAL vulnerability has a fix. `--scan-only <image>` rescans an existing image, for example the one in production after a new CVE.
-- Pushing needs a GitHub token with `write:packages`: run `gh auth refresh -s write:packages` once.
+- Pushing needs the `write:packages` scope on your `gh` login. On the first `--push` the script notices it's missing and opens the GitHub sign-in to add it, before the build starts. After a push it tells you if the GHCR package is still private (GitHub has no API for that switch, so it prints the settings link).
 - Production pins `LEPHLO_TAG` to a `sha-…` or `lephlo-v…` tag. Nothing like `latest` is pushed.
 
 **Build machine.** The image is `linux/amd64`, and the front-end build needs about 8 GB of memory. On an Apple Silicon Mac it runs under emulation and can take more than an hour, or fail for lack of memory. A temporary amd64 box is faster:

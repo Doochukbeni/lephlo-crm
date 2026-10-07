@@ -146,7 +146,7 @@ fi
 if $PUSH; then
   # A pushed image must come from a commit that exists on GitHub, so its
   # sha tag and source label lead somewhere.
-  git branch -r --contains "$SHA" | grep -q . \
+  gh api "repos/Doochukbeni/lephlo-crm/commits/$SHA" --silent 2> /dev/null \
     || fail "Commit $SHORT isn't on GitHub yet. Push it first."
   ensure_ghcr_scope
 fi

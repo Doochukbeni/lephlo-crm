@@ -4,17 +4,95 @@ One VPS (4 vCPU / 8 GB), Docker Compose. Services: Lephlo CRM server + worker, P
 
 ## First install
 
-1. DNS: point `CRM_DOMAIN` and `SIGN_DOMAIN` A records at the VPS.
-2. `cp .env.example .env`, then fill it in. Pin `LEPHLO_TAG` to an image pushed by `build-image.sh` (see below), and pin `DOCUMENSO_TAG` to a Documenso release.
-3. Documenso signing certificate:
+Everything below runs from your laptop. Scripts live in `provision/`.
+
+### 0. What you need first (owner)
+
+| Item | Where | Used for |
+|---|---|---|
+| Hetzner Cloud project + API token (read & write) | console.hetzner.com → project → Security → API tokens | `hcloud context create lephlo` (asks for it; stored in `~/.config/hcloud/cli.toml`, never in a repo) |
+| `hcloud` CLI | `brew install hcloud` | `create-server.sh` |
+| Deploy SSH key | `ssh-keygen -t ed25519 -f ~/.ssh/lephlo_deploy -C lephlo-deploy` (with a passphrase) | the `deploy` user; root login is off |
+| Two A records | Namecheap → lephlo.com → Advanced DNS: `crm` and `sign` → the server IP | Caddy's TLS certificates. Nothing else in the zone changes |
+| Resend API key + verified `lephlo.com` sender | resend.com → Domains (adds SPF/DKIM TXT records at Namecheap) | invite, verification and signing emails (`EMAIL_SMTP_PASSWORD`) |
+| Google OAuth client, type **Internal** | Google Cloud console → APIs & Services → Credentials; redirect URIs `https://crm.lephlo.com/auth/google/redirect` and `https://crm.lephlo.com/auth/google-apis/get-access-token` | Google login + Gmail/Calendar sync (optional on day one) |
+| Password vault | 1Password / Bitwarden | master copy of `.env`, the Documenso certificate, the deploy key |
+
+### 1. Create the server
+
+```bash
+lephlo/deploy/provision/create-server.sh --dry-run   # checks token, key, type
+lephlo/deploy/provision/create-server.sh             # cpx31, fsn1, daily backups
+```
+
+It uploads the SSH key, creates the `lephlo-web` firewall (in: 22, 80, 443, ping) and the server from `provision/cloud-init.yaml`, turns on Hetzner backups, waits for first boot and prints the IP. What the server gets on first boot is:
+- Docker with Compose
+- a `deploy` user (key-only login)
+- root and password login switched off
+- ufw and fail2ban
+- daily security updates, with a 04:00 reboot when a kernel update needs one
+- 4 GB swap
+- capped Docker logs
+
+Then add the two A records at Namecheap.
+
+### 2. Make the `.env`
+
+```bash
+lephlo/deploy/provision/make-env.sh    # writes lephlo/deploy/.env (mode 600, git-ignored)
+```
+
+It generates every database password and encryption key and lists what you still need to fill in:
+- `LEPHLO_TAG`: an image pushed by `build-image.sh`
+- `DOCUMENSO_TAG`: a Documenso release, never `latest`
+- `ACME_EMAIL`
+- the Resend key
+- optional: Google, Anthropic, Sentry
+
+**Copy the finished file into the vault before going on.**
+
+### 3. Install
+
+```bash
+lephlo/deploy/provision/install.sh deploy@<server-ip>
+```
+
+It refuses to start if:
+- `.env` is incomplete
+- the image isn't publicly pullable
+- the domains don't resolve to the server yet (Let's Encrypt rate-limits failed attempts)
+
+Then it does the following:
+- copies the stack to `/opt/lephlo/deploy`
+- creates the Documenso signing certificate on the server
+- starts everything and waits for the CRM to be healthy (the first start runs the database migrations)
+- installs the nightly backup timer (03:00 UTC)
+- checks that `https://crm.lephlo.com` answers with the Lephlo title
+
+### 4. Set up the workspace (by hand, once)
+
+1. Open `https://crm.lephlo.com` and sign up. The first account creates the workspace and becomes its admin. The compose file then limits workspace creation to server admins.
+2. Settings → General: workspace name **Lephlo**, upload `lephlo/brand/lephlo-mark.svg` as the logo.
+3. Settings → Security: turn on 2FA for the admin and limit sign-up to invited `@lephlo.com` addresses. Settings → Roles: everyone else gets the restricted member role.
+4. Settings → Accounts: connect Google (login + Gmail/Calendar sync) once the OAuth client is in `.env`.
+5. Tidy the sidebar: remove Opportunities, Notes, Dashboards and Workflows (Lephlo's Deals, Home and Onboarding replace them).
+6. Run the first backup and **one restore test**:
    ```bash
-   mkdir -p secrets
-   openssl req -x509 -newkey rsa:4096 -keyout secrets/key.pem -out secrets/cert.pem -days 3650 -nodes -subj "/CN=Lephlo Signing"
-   openssl pkcs12 -export -out secrets/documenso-cert.p12 -inkey secrets/key.pem -in secrets/cert.pem -passout pass:"$DOCUMENSO_SIGNING_PASSPHRASE"
-   rm secrets/key.pem
+   ssh deploy@<ip> 'sudo systemctl start lephlo-backup && journalctl -u lephlo-backup -n 5'
    ```
-4. `docker compose up -d`, then open `https://$CRM_DOMAIN` and create the workspace. Set the workspace name to **Lephlo** and upload the logo under Settings → General.
-5. Install the backup cron job from `backup.sh` and **do one restore test**.
+7. Save `secrets/documenso-cert.p12` from the server into the vault, next to `.env`.
+
+### Secrets inventory
+
+| Secret | Lives in | Rotate |
+|---|---|---|
+| `.env` (DB passwords, `ENCRYPTION_KEY`, Documenso keys, SMTP/Google/Anthropic keys) | server `/opt/lephlo/deploy/.env` (600) + vault | SMTP/Google/Anthropic keys yearly or on staff change. `ENCRYPTION_KEY`: only via `FALLBACK_ENCRYPTION_KEY` (set the old one there, restart, then remove). DB passwords: change in Postgres first, then `.env` |
+| Documenso signing certificate + passphrase | server `secrets/documenso-cert.p12` + vault | Before it expires (10 years). Old signed PDFs stay valid |
+| Deploy SSH key | your laptop `~/.ssh/lephlo_deploy` + vault | On laptop change. Add the new key to `~deploy/.ssh/authorized_keys` before removing the old one |
+| Hetzner API token | `~/.config/hcloud/cli.toml` + vault | Yearly, or when a laptop is lost |
+| GHCR push token | your `gh` login (`write:packages` scope) | Follows your GitHub login |
+
+Never put any of these in a repo or a chat. The fork is public.
 
 ## Upgrading
 

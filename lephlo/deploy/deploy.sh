@@ -91,9 +91,9 @@ fi
 step "Sync scripts"
 # Ship the current compose file and server-side scripts with the deploy; .env
 # and secrets/ on the server are left alone.
-COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh caddy \
+COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh host-check.sh caddy \
   | remote "tar -xzf - -C $REMOTE_DIR"
-echo "Copied docker-compose.yml, caddy/, backup.sh and restore.sh."
+echo "Copied docker-compose.yml, caddy/, backup.sh, restore.sh and host-check.sh."
 
 step "Backup first"
 BACKUP_LINE="$(remote "$REMOTE_DIR/backup.sh" | tail -1)"

@@ -217,7 +217,7 @@ export const SettingsWorkspaceCommunicationGroupChannelDetail = () => {
           <Section.Root>
             <Section.Header
               title={t`Sending domain`}
-              description={t`Add these records at your DNS provider. Twenty checks them automatically.`}
+              description={t`Add these records at your DNS provider. Lephlo checks them automatically.`}
             />
             <StyledSendingDomainColumn>
               <StyledInputRow>

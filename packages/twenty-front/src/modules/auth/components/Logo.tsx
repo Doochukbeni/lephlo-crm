@@ -1,6 +1,7 @@
 import { UndecoratedLink } from '@/ui/navigation/link/components/UndecoratedLink/UndecoratedLink';
 import { styled } from '@linaria/react';
 import { isNonEmptyString } from '@sniptt/guards';
+import { LephloLockup } from '~/lephlo/LephloLockup';
 import { AppPath } from 'twenty-shared/types';
 import { getImageAbsoluteURI, isDefined } from 'twenty-shared/utils';
 import { Avatar } from 'twenty-ui/primitives/data-display';
@@ -23,6 +24,13 @@ const StyledContainer = styled.div`
 
   position: relative;
   width: ${themeCssVariables.spacing[12]};
+`;
+
+const StyledLephloLockupContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: ${themeCssVariables.spacing[4]};
+  margin-top: ${themeCssVariables.spacing[4]};
 `;
 
 const StyledSecondaryLogo = styled.img`
@@ -74,6 +82,18 @@ export const Logo = ({
     : null;
 
   const isUsingDefaultLogo = !isDefined(primaryLogo);
+
+  // Lephlo: the brand lockup replaces the default app icon. There is one
+  // workspace (Lephlo), so its logo badge is left out.
+  if (isUsingDefaultLogo) {
+    return (
+      <StyledLephloLockupContainer onClick={() => onClick?.()}>
+        <UndecoratedLink to={to} onClick={() => redirectToDefaultDomain()}>
+          <LephloLockup />
+        </UndecoratedLink>
+      </StyledLephloLockupContainer>
+    );
+  }
 
   return (
     <StyledContainer onClick={() => onClick?.()}>

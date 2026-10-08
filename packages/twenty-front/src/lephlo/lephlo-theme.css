@@ -146,3 +146,33 @@
   --t-color-blue11: var(--t-accent-accent11);
   --t-color-blue12: var(--t-accent-accent12);
 }
+
+/* Login lockup (LephloLockup.tsx): the reversed variant on dark surfaces. */
+.lephlo-lockup-on-dark {
+  display: none !important;
+}
+
+.dark .lephlo-lockup-on-light {
+  display: none !important;
+}
+
+.dark .lephlo-lockup-on-dark {
+  display: block !important;
+}
+
+/*
+ * Headline font. Poppins Bold (OFL, public/fonts/lephlo/OFL.txt) for auth and
+ * onboarding titles; Inter stays for the dense app UI, as the brand kit allows.
+ */
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/lephlo/Poppins-Bold.ttf') format('truetype');
+}
+
+.light,
+.dark {
+  --lephlo-font-heading: 'Poppins', var(--t-font-family, sans-serif);
+}

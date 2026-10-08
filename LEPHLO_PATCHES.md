@@ -75,6 +75,7 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 - `packages/twenty-front/src/lephlo/`: brand theme CSS (accent scale, lockup dark-mode switch, Poppins `@font-face`), `LephloLockup.tsx`, `IconCurrencyUaeDirham.tsx`, source-code URL constant
 - `packages/twenty-front/public/images/lephlo/`: lockup SVGs (light and reversed)
 - `packages/twenty-front/public/fonts/lephlo/`: Poppins Bold + its OFL licence
+- `lephlo/deploy/provision/`: Hetzner server creation (`create-server.sh`, `cloud-init.yaml`), `.env` generator (`make-env.sh`) and first install (`install.sh`), all run from a laptop
 - `lephlo/deploy/build-image.sh`: builds, scans (Trivy + SBOM) and pushes `ghcr.io/doochukbeni/lephlo-crm` from a workstation
 
 ## Syncing a new upstream release

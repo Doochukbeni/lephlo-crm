@@ -1,0 +1,104 @@
+#cloud-config
+# First boot of a Lephlo server (production, or staging in D4).
+# create-server.sh fills in __DEPLOY_SSH_KEY__ before handing this to Hetzner.
+#
+# Result: Docker + Compose, a `deploy` user that logs in with the SSH key only,
+# no root or password login, ufw (22/80/443), fail2ban, automatic security
+# updates, 4 GB swap and capped Docker logs. Everything else (the stack, .env,
+# secrets) is installed by install.sh.
+
+package_update: true
+package_upgrade: true
+
+users:
+  - name: deploy
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: true
+    # Joins the docker group in runcmd, once Docker has created it. That group
+    # is root-equivalent anyway, so a sudo password adds nothing; the account
+    # has no password and logs in by key only.
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - __DEPLOY_SSH_KEY__
+
+disable_root: true
+ssh_pwauth: false
+
+apt:
+  sources:
+    docker.list:
+      source: deb [arch=amd64 signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE stable
+      keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+
+packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - ufw
+  - fail2ban
+  - python3-systemd
+  - unattended-upgrades
+  - rclone
+  - jq
+
+swap:
+  filename: /swapfile
+  size: 4G
+  maxsize: 4G
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-lephlo.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      AllowUsers deploy
+  # Rotate container logs so a chatty service can't fill the disk.
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "local",
+        "log-opts": { "max-size": "20m", "max-file": "5" }
+      }
+  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      backend = systemd
+      maxretry = 5
+      findtime = 10m
+      bantime = 1h
+  # Security updates daily; reboot at 04:00 when a kernel update needs it
+  # (after the 03:00 backup). Containers come back on their own (restart: always).
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/apt/apt.conf.d/52lephlo-unattended-upgrades
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+  - path: /etc/sysctl.d/90-lephlo.conf
+    content: |
+      vm.swappiness = 10
+
+runcmd:
+  # Docker publishes only Caddy's 80/443 (databases stay on the internal
+  # network), so ufw and Docker agree on what is reachable.
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+  - sysctl --system
+  - systemctl restart docker
+  - usermod -aG docker deploy
+  - systemctl enable --now fail2ban
+  - systemctl restart ssh
+  - install -d -o deploy -g deploy -m 750 /opt/lephlo
+  - install -d -o deploy -g deploy -m 700 /var/backups/lephlo
+  - touch /var/lib/lephlo-provisioned

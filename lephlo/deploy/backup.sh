@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Nightly backup: both Postgres databases + Twenty's local file storage.
-# Install on the host, e.g. `0 3 * * * /opt/lephlo/deploy/backup.sh >> /var/log/lephlo-backup.log 2>&1`
+# provision/install.sh runs it nightly at 03:00 UTC (systemd: lephlo-backup.timer).
 # Restore test (do one before go-live):
 #   gunzip -c lephlo-db.sql.gz | docker compose exec -T db psql -U "$PG_DATABASE_USER" -d "$PG_DATABASE_NAME"
 set -euo pipefail

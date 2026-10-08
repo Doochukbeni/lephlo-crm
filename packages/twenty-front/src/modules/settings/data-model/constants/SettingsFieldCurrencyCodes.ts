@@ -56,11 +56,14 @@ import {
   IconCurrencyZloty,
   type IconComponent,
 } from 'twenty-ui/icon';
+
+import { IconCurrencyUaeDirham } from '~/lephlo/IconCurrencyUaeDirham';
+
 export const SETTINGS_FIELD_CURRENCY_CODES: Record<
   CurrencyCode,
   { label: string; Icon: IconComponent }
 > = {
-  AED: { label: CURRENCY_CODE_LABELS.AED.label, Icon: IconCurrencyDirham },
+  AED: { label: CURRENCY_CODE_LABELS.AED.label, Icon: IconCurrencyUaeDirham },
   AFN: { label: CURRENCY_CODE_LABELS.AFN.label, Icon: IconCurrencyAfghani },
   ALL: { label: CURRENCY_CODE_LABELS.ALL.label, Icon: IconCurrencyLeu },
   AMD: { label: CURRENCY_CODE_LABELS.AMD.label, Icon: IconCurrencyDram },

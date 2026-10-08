@@ -42,6 +42,8 @@ const StyledTextContainer = styled.div`
 
 const StyledTitle = styled.h3<{ fontSize: 'md' | 'lg' }>`
   color: ${themeCssVariables.font.color.primary};
+  font-family: ${({ fontSize }) =>
+    fontSize === 'lg' ? 'var(--lephlo-font-heading, inherit)' : 'inherit'};
   font-size: ${({ fontSize }) => themeCssVariables.font.size[fontSize]};
   font-weight: ${themeCssVariables.font.weight.semiBold};
   margin: 0;

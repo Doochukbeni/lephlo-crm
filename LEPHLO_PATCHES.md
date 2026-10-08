@@ -77,6 +77,7 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 - `packages/twenty-front/public/fonts/lephlo/`: Poppins Bold + its OFL licence
 - `lephlo/deploy/provision/`: Hetzner server creation (`create-server.sh`, `cloud-init.yaml`), `.env` generator (`make-env.sh`) and first install (`install.sh`), all run from a laptop
 - `lephlo/deploy/deploy.sh`, `rollback.sh`, `restore.sh`: deploy an image with a backup first, undo the last deploy (previous image + pre-deploy backup), restore any backup on the server
+- `lephlo/deploy/staging.sh`: on-demand staging from the latest backup, cut off from production and email; `restore-test` for the monthly backup proof
 - `lephlo/deploy/build-image.sh`: builds, scans (Trivy + SBOM) and pushes `ghcr.io/doochukbeni/lephlo-crm` from a workstation
 
 ## Syncing a new upstream release

@@ -114,8 +114,49 @@ Each deploy is a line in `/opt/lephlo/deploy/deploys.log` (time, old tag, new ta
 
 **Upgrading Twenty** (merging an upstream release, see `../../LEPHLO_PATCHES.md`) changes the Twenty minor version, and its database migrations only go forward. So:
 1. Upgrade one minor version at a time. `deploy.sh` refuses a skipped or reversed minor version.
-2. Test the new image on staging with a copy of production data (`staging.sh`, D4).
+2. Test the new image on staging with a copy of production data: `staging.sh up <tag>`.
 3. Deploy with `--staged`, which `deploy.sh` requires whenever the Twenty minor version changes.
+
+## Staging
+
+A throwaway copy of production on its own Hetzner server, for testing a Twenty upgrade or a risky change on real data. It costs a few cents an hour.
+
+```bash
+export LEPHLO_PROD=deploy@<prod-ip>
+lephlo/deploy/staging.sh up sha-<candidate>   # or no tag: production's image only
+lephlo/deploy/staging.sh status
+lephlo/deploy/staging.sh down                 # always, the same day
+```
+
+`up` does the following:
+1. Creates `lephlo-staging` with no Hetzner backups.
+2. Copies last night's production backup to it, streamed through your laptop and never written to its disk.
+3. Installs production's current image on `https://crm-<ip>.sslip.io`, which gets TLS with no DNS change.
+4. Restores the backup.
+5. With a tag, deploys the candidate through `deploy.sh`, which runs the real migrations.
+
+Log in with your production account and test.
+
+**Staging holds client data and production's keys**, so `up` locks it down before copying anything:
+- Outbound traffic to the production server is rejected from the host and from containers. The restored Documenso settings, app variables and webhooks still point at production, and they must not reach it. `up` proves the block from inside a container first.
+- Outbound SMTP is rejected and the SMTP host points nowhere, so no email reaches a client.
+- Google login and Gmail/Calendar sync are off. Backups stay on the box, never in the off-site store.
+- It powers itself off after 24 hours. A powered-off server still costs money and holds data until `down`, and `up` refuses while one exists.
+- Its Documenso starts empty, so signing on staging only works with a test document.
+
+Never share the sslip.io URL.
+
+## Monthly restore test
+
+Backups are only real if they restore. On the first Monday of each month (a calendar reminder; there's no cron because Actions is off), run:
+
+```bash
+LEPHLO_PROD=deploy@<prod-ip> lephlo/deploy/staging.sh restore-test
+```
+
+It brings staging up from last night's backup and prints row counts for the CRM's main tables and the app's tables, production next to the restored copy. It **fails** if a table that has rows in production comes back empty, or if fewer than 90% of the rows came back. Then it deletes staging, pass or fail. Each result is appended to `lephlo/deploy/out/restore-tests.log`.
+
+Targets: data loss at most 24 hours (nightly backup), back online within 4 hours (new server + restore).
 
 ## Rolling back
 

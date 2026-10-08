@@ -197,6 +197,22 @@ After editing `.env` on the server, `docker compose up -d` picks up the Sentry v
 - `ssh deploy@<ip> 'sudo systemctl stop lephlo-host-check.timer'`: the "lephlo-host" email arrives within 30 minutes. Start the timer again afterwards.
 - Stop the server in the Hetzner console: UptimeRobot emails.
 
+## Security check
+
+From your laptop, after the first install and after any change to the firewall, compose ports or `caddy/Caddyfile`:
+
+```bash
+lephlo/deploy/security-check.sh <server-ip>      # crm.lephlo.com / sign.lephlo.com by default
+```
+
+It checks the following:
+- Only 22, 80 and 443 answer over IPv4 and IPv6. It probes database, Redis, Docker API and container ports, and runs a full 65535-port scan when `nmap` is installed.
+- http redirects to https, and the certificates are valid.
+- TLS 1.0 and 1.1 are refused.
+- Caddy's security headers are present (HSTS for a year, nosniff, referrer policy, a small CSP, frame and permissions policies), and the `Server` header is hidden.
+
+What the headers do is explained in `caddy/Caddyfile`. The CSP is deliberately small, so it doesn't break Twenty. If you tighten it, test the whole app first, including the front components.
+
 ## Disaster recovery (the server is gone)
 
 Targets: data loss at most 24 hours, back online within 4 hours.

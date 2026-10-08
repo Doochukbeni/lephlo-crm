@@ -79,9 +79,13 @@ Translation catalogs (`*.po`) are **not** regenerated here. Changed strings fall
 - `lephlo/deploy/deploy.sh`, `rollback.sh`, `restore.sh`: deploy an image with a backup first, undo the last deploy (previous image + pre-deploy backup), restore any backup on the server
 - `lephlo/deploy/staging.sh`: on-demand staging from the latest backup, cut off from production and email; `restore-test` for the monthly backup proof
 - `lephlo/deploy/host-check.sh` and `provision/setup-offsite.sh`: the 10-minute server health check (healthchecks.io), and the encrypted off-site backup store (rclone crypt on a Hetzner Storage Box)
+- `lephlo/deploy/security-check.sh`: outside-in check of open ports, HTTPS/TLS and security headers
+- `lephlo/scripts/upstream-check.sh`: newer Twenty tags since our base and the next one to merge
 - `lephlo/deploy/build-image.sh`: builds, scans (Trivy + SBOM) and pushes `ghcr.io/doochukbeni/lephlo-crm` from a workstation
 
 ## Syncing a new upstream release
+
+Once a month (calendar reminder, plus GitHub watching twentyhq/twenty for **Releases only**), run `lephlo/scripts/upstream-check.sh`. It lists the Twenty tags newer than our base and prints the next one to merge: a newer patch of the current minor first, then the next minor, never two minors at once.
 
 ```bash
 git fetch upstream --tags
@@ -93,4 +97,13 @@ npx nx build twenty-shared --skip-nx-cache
 npx nx typecheck twenty-front && npx nx typecheck twenty-server
 ```
 
-Open a PR into `lephlo`. After CI builds the image, deploy it to staging with a copy of production data, then promote to production.
+Open a PR into `lephlo`, merge it, then:
+
+```bash
+lephlo/deploy/build-image.sh --push                      # amd64 builder, see lephlo/deploy/README.md
+lephlo/deploy/staging.sh up sha-<commit>                 # real migrations on last night's data; test it
+lephlo/deploy/staging.sh down
+lephlo/deploy/deploy.sh deploy@<prod-ip> sha-<commit> --staged
+```
+
+Update "Base release" above, and bump `.twenty-version` (and the `twenty-sdk` packages) in `lephlo-os` so its integration tests run against the same version.

@@ -17,6 +17,8 @@ Everything below runs from your laptop. Scripts live in `provision/`.
 | Resend API key + verified `lephlo.com` sender | resend.com → Domains (adds SPF/DKIM TXT records at Namecheap) | invite, verification and signing emails (`EMAIL_SMTP_PASSWORD`) |
 | Google OAuth client, type **Internal** | Google Cloud console → APIs & Services → Credentials; redirect URIs `https://crm.lephlo.com/auth/google/redirect` and `https://crm.lephlo.com/auth/google-apis/get-access-token` | Google login + Gmail/Calendar sync (optional on day one) |
 | Password vault | 1Password / Bitwarden | master copy of `.env`, the Documenso certificate, the deploy key |
+| Hetzner Storage Box (BX11), SSH support on | Hetzner console → Storage Boxes | encrypted off-site backups (see Off-site backups) |
+| healthchecks.io, UptimeRobot, Sentry (free) | sign up with the owner's email | alerts (see Monitoring and alerts) |
 
 ### 1. Create the server
 
@@ -91,6 +93,9 @@ Then it does the following:
 | Deploy SSH key | your laptop `~/.ssh/lephlo_deploy` + vault | On laptop change. Add the new key to `~deploy/.ssh/authorized_keys` before removing the old one |
 | Hetzner API token | `~/.config/hcloud/cli.toml` + vault | Yearly, or when a laptop is lost |
 | GHCR push token | your `gh` login (`write:packages` scope) | Follows your GitHub login |
+| Storage Box user + password | vault (and the server's rclone config, obscured) | Yearly: change it in the Hetzner console, then rerun `setup-offsite.sh … --recover` |
+| Off-site encryption password + salt | vault only | Never. Changing them makes the existing off-site backups unreadable |
+| healthchecks.io ping URLs | `.env` | Only if leaked (they can only report, not read) |
 
 Never put any of these in a repo or a chat. The fork is public.
 
@@ -157,6 +162,58 @@ LEPHLO_PROD=deploy@<prod-ip> lephlo/deploy/staging.sh restore-test
 It brings staging up from last night's backup and prints row counts for the CRM's main tables and the app's tables, production next to the restored copy. It **fails** if a table that has rows in production comes back empty, or if fewer than 90% of the rows came back. Then it deletes staging, pass or fail. Each result is appended to `lephlo/deploy/out/restore-tests.log`.
 
 Targets: data loss at most 24 hours (nightly backup), back online within 4 hours (new server + restore).
+
+## Off-site backups
+
+The nightly backup also goes, **encrypted**, to a Hetzner Storage Box in another data centre. rclone crypt encrypts file names and contents on the server, so Hetzner only ever holds ciphertext. The Storage Box keeps the newest 7 daily, 4 weekly (Sundays) and 6 monthly (the 1st) copies. Each upload is verified against the local files through the encryption before old copies are pruned.
+
+**Once:**
+1. Order a Storage Box (BX11, about EUR 4/month, in a different location from the server).
+2. Turn on **SSH support** in its settings.
+3. Run:
+
+```bash
+lephlo/deploy/provision/setup-offsite.sh deploy@<server-ip> u123456
+```
+
+It asks for the Storage Box password, writes the rclone config for the `deploy` user (with the Storage Box host key pinned), proves a round trip, and turns the copy on in `.env`. It **prints two encryption passwords once**. Put them in the vault immediately: without them nobody can read the off-site backups, including you.
+
+Hetzner's own daily server backups (turned on by `create-server.sh`) are a second, separate layer.
+
+## Monitoring and alerts
+
+Every alert goes to the owner's email. All of these are on free tiers.
+
+| What | Service | Set up |
+|---|---|---|
+| The nightly backup ran and succeeded | healthchecks.io check **lephlo-backup**: period 1 day, grace 2 hours | Put its ping URL in `HEALTHCHECKS_BACKUP_URL`. `backup.sh` pings `/start`, then success or `/fail` with the error |
+| Server health | healthchecks.io check **lephlo-host**: period 10 minutes, grace 20 minutes | Put its ping URL in `HEALTHCHECKS_HOST_URL`. `host-check.sh` runs every 10 minutes and reports `/fail` with the list of problems: disk over 80%, under 10% memory free, 15-minute load over 2 per core, any container stopped or unhealthy, a TLS certificate under 14 days, or the last backup over 26 hours old. A dead server sends nothing, which alerts as well |
+| Reachable from the internet | UptimeRobot (or Better Stack): HTTP monitors every 5 minutes on `https://crm.lephlo.com/healthz`, a keyword monitor for "Lephlo" on `https://crm.lephlo.com/`, and `https://sign.lephlo.com/` | In their dashboard |
+| Errors in the CRM | Sentry (free): one project for the server, one for the front end | `EXCEPTION_HANDLER_DRIVER=SENTRY`, `SENTRY_DSN`, `SENTRY_FRONT_DSN`, then `deploy.sh` (or `docker compose up -d`) |
+
+After editing `.env` on the server, `docker compose up -d` picks up the Sentry values. The two healthchecks URLs are read by the scripts on their next run. Staging blanks both URLs, so it can never report on production's behalf.
+
+**Check the alerts work, once:**
+- `ssh deploy@<ip> 'sudo systemctl stop lephlo-host-check.timer'`: the "lephlo-host" email arrives within 30 minutes. Start the timer again afterwards.
+- Stop the server in the Hetzner console: UptimeRobot emails.
+
+## Disaster recovery (the server is gone)
+
+Targets: data loss at most 24 hours, back online within 4 hours.
+
+1. `provision/create-server.sh`, then point the Namecheap A records at the new IP.
+2. Get `.env` from the vault into `lephlo/deploy/.env`, then run `provision/install.sh deploy@<new-ip>`. It starts an empty CRM.
+3. `provision/setup-offsite.sh deploy@<new-ip> u123456 --recover`: it asks for the two encryption passwords from the vault.
+4. Fetch the newest backup and restore it:
+   ```bash
+   ssh deploy@<new-ip>
+   rclone lsf --dirs-only lephlo-offsite:daily | tail -1          # newest stamp
+   rclone copy lephlo-offsite:daily/<stamp> /var/backups/lephlo/<stamp>
+   cd /opt/lephlo/deploy && ./restore.sh /var/backups/lephlo/<stamp> --with-documenso
+   ```
+5. Put `secrets/documenso-cert.p12` back from the vault, so Documenso signs with the same certificate, then run `docker compose up -d documenso`.
+
+If Hetzner's server backup still exists, restoring that whole server in the console is faster. Use the steps above when it doesn't.
 
 ## Rolling back
 

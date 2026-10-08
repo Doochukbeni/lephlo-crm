@@ -84,10 +84,10 @@ fi
 step "Copy the stack to $REMOTE_DIR"
 remote "mkdir -p $REMOTE_DIR/secrets && chmod 700 $REMOTE_DIR/secrets"
 # tar rather than rsync: macOS now ships openrsync, whose filter rules differ.
-COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh caddy \
+COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh host-check.sh caddy \
   | remote "tar -xzf - -C $REMOTE_DIR"
 remote "umask 077 && cat > $REMOTE_DIR/.env" < "$ENV_FILE"
-echo "Copied docker-compose.yml, caddy/, backup.sh, restore.sh and .env."
+echo "Copied docker-compose.yml, caddy/, backup.sh, restore.sh, host-check.sh and .env."
 
 step "Documenso signing certificate"
 # Made on the server so the private key never leaves it. -legacy keeps the
@@ -123,7 +123,7 @@ done
   || fail "The server isn't healthy after 15 minutes. Look at: ssh $HOST 'cd $REMOTE_DIR && docker compose logs --tail 100 server'"
 remote "cd $REMOTE_DIR && docker compose ps --format 'table {{.Service}}\t{{.Status}}'"
 
-step "Nightly backup timer (03:00 UTC)"
+step "Timers: nightly backup (03:00 UTC), host check (every 10 minutes)"
 remote sudo bash -s <<'EOF'
 set -euo pipefail
 cat > /etc/systemd/system/lephlo-backup.service <<'UNIT'
@@ -147,9 +147,30 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 UNIT
+cat > /etc/systemd/system/lephlo-host-check.service <<'UNIT'
+[Unit]
+Description=Lephlo host check (disk, memory, containers, certificates, backups)
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+ExecStart=/opt/lephlo/deploy/host-check.sh
+UNIT
+cat > /etc/systemd/system/lephlo-host-check.timer <<'UNIT'
+[Unit]
+Description=Run the Lephlo host check every 10 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
+UNIT
 systemctl daemon-reload
-systemctl enable --now lephlo-backup.timer
-systemctl list-timers lephlo-backup.timer --no-pager | head -2
+systemctl enable --now lephlo-backup.timer lephlo-host-check.timer
+systemctl list-timers 'lephlo-*' --no-pager | head -3
 EOF
 
 step "Public check"
@@ -171,5 +192,7 @@ Next (by hand, see lephlo/deploy/README.md → First install):
   - Settings → General: name "Lephlo", upload the logo. Settings → Security: 2FA.
   - Run the first backup now and do a restore test:
       ssh $HOST 'sudo systemctl start lephlo-backup.service && journalctl -u lephlo-backup -n 5'
+  - Turn on the encrypted off-site copy: lephlo/deploy/provision/setup-offsite.sh $HOST <storage-box-user>
+  - Set up the alerts (README → Monitoring and alerts).
   - Save .env and secrets/documenso-cert.p12 to the vault.
 EOF

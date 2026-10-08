@@ -62,7 +62,7 @@ echo "Wrote $OUT (mode 600) with generated database passwords and keys."
 echo
 echo "Still to fill in by hand:"
 required=(LEPHLO_TAG DOCUMENSO_TAG ACME_EMAIL EMAIL_SMTP_PASSWORD)
-optional=(AUTH_GOOGLE_CLIENT_ID AUTH_GOOGLE_CLIENT_SECRET ANTHROPIC_API_KEY SENTRY_DSN SENTRY_FRONT_DSN BACKUP_RCLONE_REMOTE)
+optional=(AUTH_GOOGLE_CLIENT_ID AUTH_GOOGLE_CLIENT_SECRET ANTHROPIC_API_KEY SENTRY_DSN SENTRY_FRONT_DSN HEALTHCHECKS_BACKUP_URL HEALTHCHECKS_HOST_URL)
 for name in "${required[@]}" "${optional[@]}"; do
   value="$(sed -n "s/^$name=\([^ #]*\).*/\1/p" "$OUT")"
   if [[ -z "$value" || "$value" == *xxx* || "$value" == *example.com ]]; then

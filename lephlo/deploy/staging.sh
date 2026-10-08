@@ -21,7 +21,8 @@
 #   - it can't reach production: outbound traffic to the production server
 #     is rejected (Documenso, webhooks and app calls would otherwise hit it)
 #   - it can't email anyone: outbound SMTP is rejected and SMTP points nowhere
-#   - Google login and Gmail/Calendar sync are off, and backups stay local
+#   - Google login and Gmail/Calendar sync are off, backups stay local, and
+#     it never pings production's healthchecks.io checks
 #   - it powers itself off after 24 hours, and `up` refuses while one exists.
 #     It still costs money and holds data until `down`.
 # Never share the sslip.io URL.
@@ -185,6 +186,7 @@ UNIT
     -e "s/^(AUTH_GOOGLE_ENABLED|MESSAGING_PROVIDER_GMAIL_ENABLED|CALENDAR_PROVIDER_GOOGLE_ENABLED)=.*/\1=false/" \
     -e "s/^SENTRY_ENVIRONMENT=.*/SENTRY_ENVIRONMENT=staging/" \
     -e "s/^BACKUP_RCLONE_REMOTE=.*/BACKUP_RCLONE_REMOTE=/" \
+    -e "s/^(HEALTHCHECKS_BACKUP_URL|HEALTHCHECKS_HOST_URL)=.*/\1=/" \
     > "$env_file"
   "$DEPLOY/provision/install.sh" "$host" --env "$env_file"
   rm -f "$env_file"

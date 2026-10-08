@@ -76,9 +76,9 @@ fi
 step "Copy the stack to $REMOTE_DIR"
 remote "mkdir -p $REMOTE_DIR/secrets && chmod 700 $REMOTE_DIR/secrets"
 # tar rather than rsync: macOS now ships openrsync, whose filter rules differ.
-COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh caddy .env \
+COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh caddy .env \
   | remote "tar -xzf - -C $REMOTE_DIR && chmod 600 $REMOTE_DIR/.env"
-echo "Copied docker-compose.yml, caddy/, backup.sh and .env."
+echo "Copied docker-compose.yml, caddy/, backup.sh, restore.sh and .env."
 
 step "Documenso signing certificate"
 # Made on the server so the private key never leaves it. -legacy keeps the

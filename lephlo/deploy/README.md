@@ -94,14 +94,48 @@ Then it does the following:
 
 Never put any of these in a repo or a chat. The fork is public.
 
-## Upgrading
+## Deploying a new image
 
-The server runs `upgrade` on start, so upgrade one Twenty minor version at a time:
+```bash
+lephlo/deploy/build-image.sh --push                       # prints sha-<commit>
+lephlo/deploy/deploy.sh deploy@<server-ip> sha-<commit>
+```
 
-1. Merge the upstream release into `lephlo` (see `../../LEPHLO_PATCHES.md`).
-2. Build and push the image with `build-image.sh` (below).
-3. Deploy to staging with a copy of production data.
-4. Bump `LEPHLO_TAG` in production, then run `docker compose pull && docker compose up -d`.
+`deploy.sh` does the following:
+- checks the tag is pinned and publicly pullable
+- reads the Twenty version from both images' labels
+- copies the current compose file and scripts to the server
+- **runs a backup**
+- switches `LEPHLO_TAG`, then pulls and restarts the server and worker
+- waits for the server to be healthy
+- smoke-checks `https://crm…/healthz`, the Lephlo page title and `https://sign…`
+
+Each deploy is a line in `/opt/lephlo/deploy/deploys.log` (time, old tag, new tag, backup). Afterwards, update `LEPHLO_TAG` in the vault copy of `.env`.
+
+**Upgrading Twenty** (merging an upstream release, see `../../LEPHLO_PATCHES.md`) changes the Twenty minor version, and its database migrations only go forward. So:
+1. Upgrade one minor version at a time. `deploy.sh` refuses a skipped or reversed minor version.
+2. Test the new image on staging with a copy of production data (`staging.sh`, D4).
+3. Deploy with `--staged`, which `deploy.sh` requires whenever the Twenty minor version changes.
+
+## Rolling back
+
+```bash
+lephlo/deploy/rollback.sh deploy@<server-ip>
+```
+
+It puts the previous image back **and** restores the backup that `deploy.sh` took just before the deploy. The old image can't run on a migrated database, so the restore is required. Anything entered in the CRM since that deploy is lost, so it asks you to type the domain first. Documenso is untouched because a CRM deploy doesn't change it.
+
+## Restoring a backup
+
+On the server, from `/opt/lephlo/deploy`:
+
+```bash
+ls /var/backups/lephlo                                    # one folder per backup
+./restore.sh /var/backups/lephlo/<stamp>                  # CRM database + files
+./restore.sh /var/backups/lephlo/<stamp> --with-documenso # also the signing database
+```
+
+It checks the backup files, stops the CRM, recreates the database from the dump, replaces the files volume and starts everything again.
 
 ## Building the image
 

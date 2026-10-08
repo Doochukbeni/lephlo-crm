@@ -10,7 +10,7 @@
 # rollback.sh reads.
 #
 # A new Twenty minor version runs database migrations that only go forward,
-# so it needs --staged: your word that it passed staging (staging.sh, D4).
+# so it needs --staged: your word that it passed staging (staging.sh up <tag>).
 # Skipping a minor version is refused; upgrade one minor at a time.
 set -euo pipefail
 

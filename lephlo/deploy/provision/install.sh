@@ -4,6 +4,8 @@
 #
 #   lephlo/deploy/provision/install.sh deploy@<server-ip>
 #   lephlo/deploy/provision/install.sh deploy@<server-ip> --skip-dns-check
+#   lephlo/deploy/provision/install.sh deploy@<server-ip> --env FILE
+#                               another .env than lephlo/deploy/.env (staging.sh)
 #
 # It checks .env and DNS, copies the stack to /opt/lephlo/deploy, creates the
 # Documenso signing certificate (once), starts everything, installs the
@@ -16,10 +18,17 @@ DEPLOY="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE_DIR=/opt/lephlo/deploy
 IMAGE_REPO=doochukbeni/lephlo-crm
 
-HOST="${1:-}"
-[[ "$HOST" == *@* ]] || { echo "Usage: $0 deploy@<server-ip> [--skip-dns-check]" >&2; exit 1; }
-SKIP_DNS=false
-[[ "${2:-}" == --skip-dns-check ]] && SKIP_DNS=true
+HOST="" SKIP_DNS=false ENV_FILE="$DEPLOY/.env"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-dns-check) SKIP_DNS=true ;;
+    --env) ENV_FILE="${2:?--env needs a file}"; shift ;;
+    *@*) HOST="$1" ;;
+    *) HOST="" ; break ;;
+  esac
+  shift
+done
+[[ -n "$HOST" ]] || { echo "Usage: $0 deploy@<server-ip> [--skip-dns-check] [--env FILE]" >&2; exit 1; }
 
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 fail() { printf '\033[31m✖ %s\033[0m\n' "$1" >&2; exit 1; }
@@ -31,7 +40,6 @@ ssh_opts=(-o StrictHostKeyChecking=accept-new)
 remote() { ssh "${ssh_opts[@]}" "$HOST" "$@"; }
 
 step "Checks"
-ENV_FILE="$DEPLOY/.env"
 [[ -f "$ENV_FILE" ]] || fail "No $ENV_FILE. Create it with lephlo/deploy/provision/make-env.sh"
 [[ "$(stat -f %Lp "$ENV_FILE" 2> /dev/null || stat -c %a "$ENV_FILE")" == 600 ]] \
   || fail "$ENV_FILE should be mode 600: chmod 600 $ENV_FILE"
@@ -76,8 +84,9 @@ fi
 step "Copy the stack to $REMOTE_DIR"
 remote "mkdir -p $REMOTE_DIR/secrets && chmod 700 $REMOTE_DIR/secrets"
 # tar rather than rsync: macOS now ships openrsync, whose filter rules differ.
-COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh caddy .env \
-  | remote "tar -xzf - -C $REMOTE_DIR && chmod 600 $REMOTE_DIR/.env"
+COPYFILE_DISABLE=1 tar -C "$DEPLOY" -czf - docker-compose.yml backup.sh restore.sh caddy \
+  | remote "tar -xzf - -C $REMOTE_DIR"
+remote "umask 077 && cat > $REMOTE_DIR/.env" < "$ENV_FILE"
 echo "Copied docker-compose.yml, caddy/, backup.sh, restore.sh and .env."
 
 step "Documenso signing certificate"
